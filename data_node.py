@@ -1,5 +1,6 @@
 import os
 import shutil
+import falcon
 
 
 class DataNode:
@@ -9,7 +10,20 @@ class DataNode:
         self.workdir = root
 
     def mkfs(self):
-        pass
+        if os.path.exists(self.root):
+            shutil.rmtree(self.root)
+        os.makedirs(self.root)
+
+    def df(self) -> tuple:
+        """
+        Returns storage stats
+
+        Returns
+        -------
+        tuple(int, int, int)
+            total, used, free size in bytes on disk
+        """
+        return shutil.disk_usage(self.root)
 
     def _resolve_path(self, path: str) -> str:
         if path.startswith('/'):
