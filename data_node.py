@@ -118,3 +118,45 @@ class DataNode:
             raise Exception(f'{dst} already exists')
         shutil.move(abs_src, abs_dst)
 
+    def _deserialize(self, stream):
+        has_blob = False
+        path = b''
+        b = stream.read(1)
+        while b:
+            if b == b' ':
+                break
+            if b == b'\0':
+                has_blob = True
+                break
+            path += path + b
+            b = stream.read(1)
+        path = path.decode('utf-8')
+        if not b:
+            return path
+
+        if has_blob:
+            return path, stream.read()
+
+        b = stream.read(1)
+        if b == b'!':
+            nb = stream.read(1)
+            if not nb:
+                return path, True
+            b += nb
+        b += stream.read()
+        return path, b.decode('utf-8')
+
+    URLS = {
+        '/mkfs': (mkfs, _deserialize),
+        '/cd': (cd, _deserialize),
+        '/ls': (ls, _deserialize),
+        '/mkdir': (mkdir, _deserialize),
+        '/rmdir': (rmdir, _deserialize),
+        '/touch': (touch, _deserialize),
+        '/cat': (cat, _deserialize),
+        '/rm': (rm, _deserialize),
+        '/stat': (stat, _deserialize),
+        '/cp': (cp, _deserialize),
+        '/mv': (mv, _deserialize),
+    }
+
