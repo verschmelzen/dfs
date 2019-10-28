@@ -23,7 +23,7 @@ def deserialize(stream):
         b = stream.read(1)
     path = path.decode('utf-8')
     if not b:
-        return (path or None,)
+        return (path,) if path else ()
 
     if has_blob:
         return path, stream.read()
@@ -157,7 +157,7 @@ class DataNode:
             raise CommandError(f'{dst} already exists')
         shutil.move(abs_src, abs_dst)
 
-    PATHS = {
+    HANDLERS = {
         '/mkfs': (mkfs, deserialize, serialize),
         '/cd': (cd, deserialize, serialize),
         '/ls': (ls, deserialize, serialize),
