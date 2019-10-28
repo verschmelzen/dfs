@@ -9,35 +9,37 @@ def path_join(first, *args):
         os.path.join(first, *(a.strip('/') for a in args))
     )
 
-def deserialize(stream):
+def deserialize(stream, content_len):
+    it = iter(stream.read(content_len))
     has_blob = False
     path = b''
-    b = stream.read(1)
-    while b:
+    for b in it:
+        b = bytes([b])
         if b == b' ':
             break
         if b == b'\0':
             has_blob = True
             break
-        path += path + b
-        b = stream.read(1)
+        path += b
+    else:
+        return (path.decode('utf-8'),) if path else ()
     path = path.decode('utf-8')
-    if not b:
-        return (path,) if path else ()
 
     if has_blob:
-        return path, stream.read()
+        return path, bytes(it)
 
-    b = stream.read(1)
+    b = next(it)
     if b == b'!':
-        nb = stream.read(1)
+        nb = next(it)
         if not nb:
             return path, True
         b += nb
-    b += stream.read()
+    b += bytes(it)
     return path, b.decode('utf-8')
 
 def serialize(data):
+    if data == None:
+        return b''
     if type(data) == bytes:
         return data
     try:

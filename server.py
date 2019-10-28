@@ -21,7 +21,10 @@ def route_request(env, start_response):
     uri = request_uri(env).rstrip('/')
     path = urlparse(uri).path
     command, deserialize, serialize = node.HANDLERS[path]
-    args = deserialize(env['wsgi.input'])
+    args = deserialize(
+        env['wsgi.input'],
+        int(env.get('CONTENT_LENGTH', 0)),
+    )
     try:
         resp = command(node, *args)
     except CommandError as e:
@@ -29,7 +32,7 @@ def route_request(env, start_response):
             '400 Bad Request',
             [('Content-type', 'text/plain')],
         )
-        return [str(e).enode('utf-8')]
+        return [str(e).encode('utf-8')]
     start_response(
         '200 OK',
         [('Content-type', 'application/octet-stream')],
