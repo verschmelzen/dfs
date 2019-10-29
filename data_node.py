@@ -92,6 +92,8 @@ class DataNode:
 
     def cd(self, path: str):
         fs_path = self._path_to_fs(path)
+        if not os.path.exists(fs_path):
+            raise CommandError(f'{path} does not exist')
         if not os.path.isdir(fs_path):
             raise CommandError(f'{path} is not a dir')
         self._workdir = self._fs_to_path(fs_path)
@@ -100,6 +102,8 @@ class DataNode:
         if path == None:
             path = self._workdir
         fs_path = self._path_to_fs(path)
+        if not os.path.exists(fs_path):
+            raise CommandError(f'{path} does not exist')
         if not os.path.isdir(fs_path):
             raise CommandError(f'{path} is not a dir')
         return os.listdir(fs_path)
@@ -112,6 +116,8 @@ class DataNode:
 
     def rmdir(self, path: str, force=False):
         fs_path = self._path_to_fs(path)
+        if not os.path.exists(fs_path):
+            raise CommandError(f'{path} does not exist')
         if not os.path.isdir(fs_path):
             raise CommandError(f'{path} is not a dir')
         if len(os.listdir(path)) > 0 and not force:
