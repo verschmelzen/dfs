@@ -12,6 +12,11 @@ def path_join(first, *args):
         os.path.join(first, *(a.strip('/') for a in args))
     )
 
+
+def is_subpath(base, path):
+    return os.path.abspath(path).startswith(os.path.abspath(base))
+
+
 def deserialize(stream, content_len):
     it = iter(stream.read(content_len))
     has_blob = False
@@ -66,10 +71,17 @@ class DataNode:
             self.join_namespace(namenode_url)
         self._workdir = '/'
 
+    def _secure(self, path):
+        if is_subpath(path, self._fs_root):
+            return self._fs_root
+        return path
+
     def _path_to_fs(self, path: str) -> str:
         if path.startswith('/'):
-            return path_join(self._fs_root, path)
-        return path_join(self._fs_root, self._workdir, path)
+            return self._secure(path_join(self._fs_root, path))
+        return self._secure(
+            path_join(self._fs_root, self._workdir, path)
+        )
 
     def _fs_to_path(self, fs_path):
         return fs_path[len(self._fs_root):] or '/'

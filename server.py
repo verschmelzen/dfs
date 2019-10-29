@@ -23,7 +23,7 @@ def route_request(env, start_response):
     command, deserialize, serialize = node.HANDLERS[path]
     args = deserialize(
         env['wsgi.input'],
-        int(env.get('CONTENT_LENGTH', 0)),
+        int(env.get('CONTENT_LENGTH', 0) or 0),
     )
     try:
         resp = command(node, *args)
