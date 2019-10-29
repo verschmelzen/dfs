@@ -1,7 +1,10 @@
 import os
+import sys
 import shutil
+from urllib.request import urlopen, Request, URLError, HTTPError
+from urllib.parse import urljoin, urlparse
 
-from util import CommandError
+from util import CommandError, gen_id
 
 
 def path_join(first, *args):
@@ -51,8 +54,16 @@ def serialize(data):
 
 class DataNode:
 
-    def __init__(self, fs_root: str):
+    @staticmethod
+    def get_args(env):
+        return env['DFS_FS_ROOT'], env.get('DFS_NAMENODE_URL')
+
+    def __init__(self, fs_root: str, namenode_url=None):
+        self._id = gen_id()
         self._fs_root = fs_root.rstrip('/')
+        self._namenode_url = None
+        if namenode_url:
+            self.join_namespace(namenode_url)
         self._workdir = '/'
 
     def _path_to_fs(self, path: str) -> str:
@@ -172,4 +183,36 @@ class DataNode:
         '/cp': (cp, deserialize, serialize),
         '/mv': (mv, deserialize, serialize),
     }
+
+    MEMBER_PATH = '/nodes'
+
+    def join_namespace(self, namenode_url):
+        if self._namenode_url:
+            raise CommandError(
+                'Can only join one namespace. '
+                f'Please leave {self._namenode_url} first'
+            )
+        if not urlparse(namenode_url).netloc:
+            raise CommandError(f'Invalid namenode url {namenode_url}')
+        urlopen(
+            urljoin(namenode_url, self.MEMBER_PATH),
+            data=self._id.encode('utf-8'),
+        ).close()
+        self._namenode_url = namenode_url
+
+    def leave_namespace(self):
+        if self._namenode_url:
+            raise CommandError('Not a member of namespace')
+        req = Request(
+            urljoin(self._namenode_url, self.MEMBER_PATH),
+            method='DELETE',
+        )
+        try:
+            urlopen(req).close()
+        except (URLError, HTTPError):
+            print(
+                "Failed to notify namenode. Still leaving!",
+                file=sys.stderr,
+            )
+        self._namenode_url = None
 

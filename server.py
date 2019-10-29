@@ -41,9 +41,8 @@ def route_request(env, start_response):
 
 
 if __name__ == '__main__':
-    node = import_class(
-        os.environ['DFS_NODE_CLASS']
-    )(os.environ['DFS_FS_ROOT'])
+    node_cls = import_class(os.environ['DFS_NODE_CLASS'])
+    node = node_cls(*node_cls.get_args(os.environ))
 
     def wsgi_app(env, start_response):
         env['DFS_NODE_CLASS'] = node
