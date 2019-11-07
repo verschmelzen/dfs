@@ -1,19 +1,9 @@
 import os
-import sys
-from importlib import import_module
 from wsgiref.simple_server import make_server
 from wsgiref.util import request_uri
 from urllib.parse import urlparse
 
-from util import CommandError
-
-
-def import_class(path):
-    parts = path.split('.')
-    package_parts, klass = parts[:-1], parts[-1]
-    if package_parts:
-        return getattr(import_module('.'.join(package_parts)), klass)
-    return getattr(sys.modules[__name__], klass)
+from util import CommandError, import_class
 
 
 def route_request(env, start_response):

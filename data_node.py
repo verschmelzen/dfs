@@ -4,13 +4,7 @@ import shutil
 from urllib.request import urlopen, Request, URLError, HTTPError
 from urllib.parse import urljoin, urlparse
 
-from util import CommandError, gen_id
-
-
-def path_join(first, *args):
-    return os.path.normpath(
-        os.path.join(first, *(a.strip('/') for a in args))
-    )
+from util import CommandError, gen_id, path_join
 
 
 def is_subpath(base, path):
