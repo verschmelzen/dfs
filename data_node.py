@@ -184,6 +184,7 @@ class DataNode:
 
     HANDLERS = {
         '/mkfs': (mkfs, deserialize, serialize),
+        '/df': (df, deserialize, serialize),
         '/cd': (cd, deserialize, serialize),
         '/ls': (ls, deserialize, serialize),
         '/mkdir': (mkdir, deserialize, serialize),
