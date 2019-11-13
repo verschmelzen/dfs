@@ -49,7 +49,7 @@ class NameNode:
                 next(x for x in reader if x[0] == node_id)
                 return True
             except StopIteration:
-                return false
+                return False
 
     def _send_mkfs(self, url):
         raise NotImplementedError
