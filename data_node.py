@@ -65,16 +65,10 @@ class DataNode:
             self.join_namespace(namenode_url)
         self._workdir = '/'
 
-    def _secure(self, path):
-        if is_subpath(path, self._fs_root):
-            return self._fs_root
-        return path
-
     def _path_to_fs(self, path: str) -> str:
-        if path.startswith('/'):
-            return self._secure(path_join(self._fs_root, path))
-        return self._secure(
-            path_join(self._fs_root, self._workdir, path)
+        return path_join(
+            self._fs_root,
+            path_join('/', self._workdir.strip('/'), path).strip('/')
         )
 
     def _fs_to_path(self, fs_path):
@@ -106,7 +100,7 @@ class DataNode:
 
     def ls(self, path: str = None) -> list:
         if path == None:
-            path = self._workdir
+            path = ''
         fs_path = self._path_to_fs(path)
         if not os.path.exists(fs_path):
             raise CommandError(f'{path} does not exist')
@@ -126,7 +120,9 @@ class DataNode:
             raise CommandError(f'{path} does not exist')
         if not os.path.isdir(fs_path):
             raise CommandError(f'{path} is not a dir')
-        if len(os.listdir(path)) > 0 and not force:
+        if fs_path == self._fs_root:
+            raise CommandError(f'Cannot remove root dir')
+        if len(os.listdir(fs_path)) > 0 and not force:
             raise CommandError(f'{path} is not empty')
         shutil.rmtree(fs_path)
 

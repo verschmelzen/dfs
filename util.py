@@ -7,9 +7,7 @@ from importlib import import_module
 
 
 def path_join(first, *args):
-    return os.path.normpath(
-        os.path.join(first, *(a.strip('/') for a in args))
-    )
+    return os.path.normpath(os.path.join(first, *args))
 
 
 def import_class(path):
