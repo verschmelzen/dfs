@@ -1,54 +1,15 @@
 import os
 import sys
 import shutil
-from urllib.request import urlopen, Request, URLError, HTTPError
+from urllib.request import urlopen, URLError, HTTPError
 from urllib.parse import urljoin, urlparse
 
-from util import CommandError, gen_id, path_join
+from util import CommandError, gen_id, path_join, deserialize, \
+    serialize
 
 
 def is_subpath(base, path):
     return os.path.abspath(path).startswith(os.path.abspath(base))
-
-
-def deserialize(stream, content_len):
-    it = iter(stream.read(content_len))
-    has_blob = False
-    path = b''
-    for b in it:
-        b = bytes([b])
-        if b == b' ':
-            break
-        if b == b'\0':
-            has_blob = True
-            break
-        path += b
-    else:
-        return (path.decode('utf-8'),) if path else ()
-    path = path.decode('utf-8')
-
-    if has_blob:
-        return path, bytes(it)
-
-    b = next(it)
-    if b == b'!':
-        nb = next(it)
-        if not nb:
-            return path, True
-        b += nb
-    b += bytes(it)
-    return path, b.decode('utf-8')
-
-def serialize(data):
-    if data == None:
-        return b''
-    if type(data) == bytes:
-        return data
-    try:
-        iterator = iter(data)
-    except TypeError:
-        return str(data).encode('utf-8')
-    return ' '.join(str(x) for x in iterator).encode('utf-8')
 
 
 class DataNode:
@@ -187,13 +148,12 @@ class DataNode:
         '/rmdir': (rmdir, deserialize, serialize),
         '/touch': (touch, deserialize, serialize),
         '/cat': (cat, deserialize, serialize),
+        '/tee': (tee, deserialize, serialize),
         '/rm': (rm, deserialize, serialize),
         '/stat': (stat, deserialize, serialize),
         '/cp': (cp, deserialize, serialize),
         '/mv': (mv, deserialize, serialize),
     }
-
-    MEMBER_PATH = '/nodes'
 
     def join_namespace(self, namenode_url):
         if self._namenode_url:
@@ -204,7 +164,7 @@ class DataNode:
         if not urlparse(namenode_url).netloc:
             raise CommandError(f'Invalid namenode url {namenode_url}')
         urlopen(
-            urljoin(namenode_url, self.MEMBER_PATH),
+            urljoin(namenode_url, '/nodes/join'),
             data=self._id.encode('utf-8'),
         ).close()
         self._namenode_url = namenode_url
@@ -212,12 +172,10 @@ class DataNode:
     def leave_namespace(self):
         if self._namenode_url:
             raise CommandError('Not a member of namespace')
-        req = Request(
-            urljoin(self._namenode_url, self.MEMBER_PATH),
-            method='DELETE',
-        )
         try:
-            urlopen(req).close()
+            urlopen(
+                urljoin(self._namenode_url, '/nodes/leave')
+            ).close()
         except (URLError, HTTPError):
             print(
                 "Failed to notify namenode. Still leaving!",

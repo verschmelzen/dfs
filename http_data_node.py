@@ -4,17 +4,17 @@ from urllib.parse import urlparse, urljoin
 from util import CommandError
 
 
-def deserialize_tuple(stream):
-    tmp = stream.read().decode('utf-8')
+def deserialize_tuple(stream, content_len, remote_ip):
+    tmp = stream.read(content_len).decode('utf-8')
     total, used, free = (int(x) for x in tmp.split())
     return total, used, free
 
-def deserialize_list(stream):
-    tmp = stream.read().decode('utf-8')
+def deserialize_list(stream, content_len, remote_ip):
+    tmp = stream.read(content_len).decode('utf-8')
     return tmp.split()
 
-def deserialize_stat(stream):
-    tmp = stream.read().decode('utf-8')
+def deserialize_stat(stream, content_len, remote_ip):
+    tmp = stream.read(content_len).decode('utf-8')
     tmp = tmp.split()
     return tmp[0], int(tmp[1])
 
@@ -73,7 +73,7 @@ class HttpDataNode:
             return resp.read()
 
     def tee(self, path: str, data: bytes):
-        data = path.encode('utf-8') + '\0' + data
+        data = path.encode('utf-8') + b'\0' + data
         urlopen(
             urljoin(self._url, '/tee'),
             data=data,

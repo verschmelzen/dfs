@@ -10,10 +10,18 @@ def route_request(env, start_response):
     node = env['DFS_NODE_CLASS']
     uri = request_uri(env).rstrip('/')
     path = urlparse(uri).path
-    command, deserialize, serialize = node.HANDLERS[path]
+    try:
+        command, deserialize, serialize = node.HANDLERS[path]
+    except KeyError:
+        start_response(
+            '404 Not Found',
+            [('Content-type', 'text/plain')],
+        )
+        return [b'']
     args = deserialize(
         env['wsgi.input'],
         int(env.get('CONTENT_LENGTH', 0) or 0),
+        env['REMOTE_ADDR'],
     )
     try:
         resp = command(node, *args)
