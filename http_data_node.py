@@ -48,7 +48,11 @@ class HttpDataNode:
             urljoin(self._url, '/ls'),
             data=path.encode('utf-8') if path else b'',
         ) as resp:
-            return deserialize_list(resp)
+            return deserialize_list(
+                resp,
+                resp.length,
+                urlparse(resp.url).hostname,
+            )
 
     def mkdir(self, path: str):
         urlopen(
@@ -94,7 +98,11 @@ class HttpDataNode:
             urljoin(self._url, '/stat'),
             data=path.encode('utf-8'),
         ) as resp:
-            return deserialize_stat(resp)
+            return deserialize_stat(
+                resp,
+                resp.length,
+                urlparse(resp.url).hostname,
+            )
 
     def cp(self, src: str, dst: str):
         data = src + ' ' + dst
