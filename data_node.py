@@ -39,6 +39,7 @@ class DataNode:
         if os.path.exists(self._fs_root):
             shutil.rmtree(self._fs_root)
         os.makedirs(self._fs_root)
+        self._workdir = '/'
 
     def df(self) -> tuple:
         """
