@@ -1,3 +1,6 @@
+import random
+from urllib.parse import urljoin
+
 from util import (
     CommandError,
     path_join,
@@ -5,6 +8,7 @@ from util import (
     deserialize,
     serialize,
 )
+from members import *
 
 
 def deserialize_join(stream, content_len, remote_ip):
@@ -21,23 +25,14 @@ class NameNode:
         )
 
     def __init__(self, db_path, member_cls, replicas):
-        self._db_path = os.path.normpath(db_path)
         self._nodes_file = path_join(self._db_path, 'nodes')
         self._member_cls = import_class(member_cls)
         self._replicas = replicas
+        self._db = MemberDB(db_path)
 
-    def initdb(self):
-        try:
-            os.makedirs(self._db_path)
-        except OSError:
-            raise CommandError(
-                'Cannot initialize database in existing directory'
-            )
-        open(self._nodes_file, 'a').close()
 
     def list_nodes(self):
-        with _nodes_reader(self._nodes_file) as reader:
-            return list(reader)
+        return self._db.filter()
 
     def is_member(self, node_id):
         with _nodes_reader(self._nodes_file) as reader:
@@ -64,35 +59,69 @@ class NameNode:
             for r in new_records:
                 writer.write(r)
 
+
     def mkfs(self):
-        with _nodes_reader(self._nodes_file) as reader:
-            nodes = [x[1] for x in reader]
-        for n in nodes:
-            self._member_cls(n).mkfs()
+        nodes = self._db.filter(status=ALIVE)
+        for node in nodes:
+            self._member_cls(node.url).mkfs()
 
     def df(self):
-        with _nodes_reader(self._nodes_file) as reader:
-            nodes = list(reader)
-        results = []
-        for id, addr in nodes:
-            results.append(
-                (id, self._member_cls(addr).df())
+        nodes = self._db.filter(status=ALIVE)
+        total = []
+        for node in nodes:
+            total.append(
+                [node.id, *self._member_cls(node.url).df()]
             )
-        return results
+        return total
 
     def cd(self, path: str):
-        with _nodes_reader(self._nodes_file) as reader:
-            nodes = list(reader)
-        for id, addr in nodes:
-            try:
-                self._member_cls(addr).cd(path)
-            except (URLError, HTTPError):
-                pass
+        nodes = self._db.filter(status=ALIVE)
+        for node in nodes:
+            self._member_cls(node.url).cd(path)
 
-    HANDLERS = {
-        '/initdb': (initdb, deserialize, serialize),
-        '/nodes/list': (list_nodes, deserialize, serialize),
-        '/nodes/join': (add_node, deserialize_join, serialize),
-        '/nodes/leave': (exclude_node, deserialize, serialize),
-    }
+    def ls(self, path: str = None) -> list:
+        node = random.choice(self._db.filter(status=ALIVE))
+        return urljoin(node.url, '/ls')
 
+    def mkdir(self, path: str):
+        nodes = self._db.filter(status=ALIVE)
+        for node in nodes:
+            self._member_cls(node.url).mkdir(path)
+
+    def rmdir(self, path: str, force=False):
+        nodes = self._db.filter(status=ALIVE)
+        for node in nodes:
+            self._member_cls(node.url).rmdir(path, force)
+
+    def touch(self, path: str):
+        nodes = self._db.filter(status=ALIVE)
+        for node in nodes:
+            self._member_cls(node.url).touch(path)
+
+    def cat(self, path: str) -> bytes:
+        node = random.choice(self._db.filter(status=ALIVE))
+        return urljoin(node.url, '/cat')
+
+    def tee(self, path: str, data: bytes):
+        nodes = self._db.filter(status=ALIVE)
+        for node in nodes:
+            self._member_cls(node.url).tee(path, data)
+
+    def rm(self, path: str):
+        nodes = self._db.filter(status=ALIVE)
+        for node in nodes:
+            self._member_cls(node.url).rm(path)
+
+    def stat(self, path: str) -> tuple:
+        node = random.choice(self._db.filter(status=ALIVE))
+        return urljoin(node.url, '/stat')
+
+    def cp(self, src: str, dst: str):
+        nodes = self._db.filter(status=ALIVE)
+        for node in nodes:
+            self._member_cls(node.url).cp(src, dst)
+
+    def mv(self, src: str, dst: str):
+        nodes = self._db.filter(status=ALIVE)
+        for node in nodes:
+            self._member_cls(node.url).mv(src, dst)

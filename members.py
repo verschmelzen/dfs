@@ -10,7 +10,7 @@ def current_time():
 
 
 NEW = 'new'
-HEALTHY = 'healty'
+ALIVE = 'alive'
 DEAD = 'dead'
 
 
@@ -103,6 +103,20 @@ class MemberDB:
             self._records[id] = record
             self.sync()
             return Member(*record, database=self)
+
+    def filter(self, **kwargs):
+        with self._lock:
+            members = [
+                Member(*record, database=self)
+                for record in self._records.values()
+            ]
+            for (key, value) in kwargs.items():
+                members = [
+                    member
+                    for member in members
+                    if member[key] == value
+                ]
+            return members
 
     @contextmanager
     def _open_read(self):
