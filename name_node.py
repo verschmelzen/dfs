@@ -1,22 +1,13 @@
 import random
 from urllib.parse import urljoin
 
-from util import (
-    CommandError,
-    path_join,
-    import_class,
-    deserialize,
-    serialize,
-)
+from util import *
 from members import *
 from http_data_node import HttpDataNode
 
 
-def deserialize_join(stream, content_len, remote_ip):
-    return stream.read(content_len).decode('utf-8'), remote_ip
-
-
 class NameNode:
+
     @staticmethod
     def get_args(env):
         return (env['DFS_DB_PATH'],)
@@ -24,16 +15,15 @@ class NameNode:
     def __init__(self, db_path):
         self._db = MemberDB(db_path)
 
-    def list_nodes(self):
-        return self._db.filter()
-
     def add_node(self, url, node_id):
         # TODO: assign status NEW for handling heartbeat thread
         member = self._db.get(node_id)
         if member:
             raise CommandError(f'{node_id} is already a member')
         self._db.create(node_id, url, ALIVE)
-        HttpDataNode(url).mkfs()
+
+    def status(self):
+        return [(n.id, n.status) for n in self._db.filter()]
 
     def mkfs(self):
         nodes = self._db.filter(status=ALIVE)
@@ -102,6 +92,23 @@ class NameNode:
             HttpDataNode(node.url).mv(src, dst)
 
     HANDLERS = {
+        '/add_node': (add_node, deserialize, serialize),
+        '/status': (status, deserialize, serialize_matrix),
+
+        '/mkfs': (mkfs, deserialize, serialize),
+        '/df': (df, deserialize, serialize_matrix),
+        '/cd': (cd, deserialize, serialize),
+        '/ls': (ls, deserialize, serialize),
+        '/mkdir': (mkdir, deserialize, serialize),
+        '/rmdir': (rmdir, deserialize, serialize),
+        '/touch': (touch, deserialize, serialize),
+        '/cat': (cat, deserialize, serialize),
+        '/tee': (tee, deserialize, serialize),
+        '/rm': (rm, deserialize, serialize),
+        '/stat': (stat, deserialize, serialize),
+        '/cp': (cp, deserialize, serialize),
+        '/mv': (mv, deserialize, serialize),
+
         '/nodes/join': (add_node, deserialize_join, serialize),
     }
 

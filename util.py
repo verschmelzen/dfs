@@ -58,14 +58,52 @@ def deserialize(stream, content_len, remote_ip):
     b += bytes(it)
     return path, b.decode('utf-8')
 
+
 def serialize(data):
     if data == None:
         return b''
     if type(data) == bytes:
         return data
+    if type(data) == str:
+        return data.encode('utf-8')
+    print(data, 'ono loh')
     try:
         iterator = iter(data)
     except TypeError:
         return str(data).encode('utf-8')
     return ' '.join(str(x) for x in iterator).encode('utf-8')
+
+
+def deserialize_tuple(stream, content_len, remote_ip):
+    tmp = stream.read(content_len).decode('utf-8')
+    total, used, free = (int(x) for x in tmp.split())
+    return total, used, free
+
+
+def deserialize_list(stream, content_len, remote_ip):
+    tmp = stream.read(content_len).decode('utf-8')
+    return tmp.split()
+
+
+def deserialize_stat(stream, content_len, remote_ip):
+    tmp = stream.read(content_len).decode('utf-8')
+    tmp = tmp.split()
+    return tmp[0], int(tmp[1])
+
+
+def deserialize_matrix(stream, content_len, remote_ip):
+    tmp = stream.read(content_len).decode('utf-8')
+    lines = tmp.split('\n')
+    return [l.split('\t') for l in lines]
+
+
+def deserialize_join(stream, content_len, remote_ip):
+    port, id = stream.read(content_len).decode('utf-8').split(' ')
+    url = 'http://' + remote_ip + ':' + port + '/'
+    return url, id
+
+
+def serialize_matrix(data):
+    lines = [b'\t'.join(x) for x in data]
+    return b'\n'.join(lines)
 

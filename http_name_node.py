@@ -4,19 +4,34 @@ from urllib.parse import urlparse, urljoin
 from util import *
 
 
-class HttpDataNode:
+class HttpNameNode:
 
     def __init__(self, url):
         if not urlparse(url).netloc:
             raise CommandError(f'Invalid node url {url}')
         self._url = url
 
+    def add_node(self, url, node_id):
+        data = url + ' ' + node_id
+        urlopen(
+            urljoin(self._url, '/add_node'),
+            data=data.encode('utf-8'),
+        ).close()
+
+    def status(self):
+        with urlopen(urljoin(self._url, '/status')) as resp:
+            return deserialize_matrix(
+                resp,
+                resp.length,
+                urlparse(resp.url).hostname,
+            )
+
     def mkfs(self):
         urlopen(urljoin(self._url, '/mkfs')).close()
 
-    def df(self) -> tuple:
+    def df(self):
         with urlopen(urljoin(self._url, '/df')) as resp:
-            return deserialize_tuple(
+            return deserialize_matrix(
                 resp,
                 resp.length,
                 urlparse(resp.url).hostname,
@@ -29,9 +44,15 @@ class HttpDataNode:
         ).close()
 
     def ls(self, path: str = None) -> list:
+        data = path.encode('utf-8') if path else b''
         with urlopen(
             urljoin(self._url, '/ls'),
-            data=path.encode('utf-8') if path else b'',
+            data=data,
+        ) as resp:
+            url = resp.read().decode('utf-8')
+        with urlopen(
+            url,
+            data=data,
         ) as resp:
             return deserialize_list(
                 resp,
@@ -59,9 +80,15 @@ class HttpDataNode:
         ).close()
 
     def cat(self, path: str) -> bytes:
+        data = path.encode('utf-8')
         with urlopen(
             urljoin(self._url, '/cat'),
-            data=path.encode('utf-8'),
+            data=data,
+        ) as resp:
+            url = resp.read().decode('utf-8')
+        with urlopen(
+            url,
+            data=data,
         ) as resp:
             return resp.read()
 
@@ -79,9 +106,15 @@ class HttpDataNode:
         ).close()
 
     def stat(self, path: str) -> tuple:
+        data = path.encode('utf-8')
         with urlopen(
             urljoin(self._url, '/stat'),
-            data=path.encode('utf-8'),
+            data=data,
+        ) as resp:
+            url = resp.read().decode('utf-8')
+        with urlopen(
+            url,
+            data=data,
         ) as resp:
             return deserialize_stat(
                 resp,
@@ -101,6 +134,5 @@ class HttpDataNode:
         urlopen(
             urljoin(self._url, '/mv'),
             data=data.encode('utf-8'),
-
         ).close()
 

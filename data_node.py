@@ -4,8 +4,7 @@ import shutil
 from urllib.request import urlopen, URLError, HTTPError
 from urllib.parse import urljoin, urlparse
 
-from util import CommandError, gen_id, path_join, deserialize, \
-    serialize
+from util import *
 
 
 def is_subpath(base, path):
@@ -16,13 +15,23 @@ class DataNode:
 
     @staticmethod
     def get_args(env):
-        return env['DFS_FS_ROOT'], env.get('DFS_NAMENODE_URL')
+        return (
+            env['DFS_FS_ROOT'],
+            env.get('DFS_NAMENODE_URL'),
+            env.get('DFS_PORT', '8180'),
+        )
 
-    def __init__(self, fs_root: str, namenode_url=None):
+    def __init__(self, fs_root: str, namenode_url=None, port=None):
         self._id = gen_id()
         self._fs_root = fs_root.rstrip('/')
         self._namenode_url = None
+        self._advertise_port = port
         if namenode_url:
+            if not self._advertise_port:
+                raise ValueError(
+                    'DFS_PORT should be set explicitly '
+                    'when running in cluster mode'
+                )
             self.join_namespace(namenode_url)
         self._workdir = '/'
 
@@ -164,9 +173,10 @@ class DataNode:
             )
         if not urlparse(namenode_url).netloc:
             raise CommandError(f'Invalid namenode url {namenode_url}')
+        data = self._advertise_port + ' ' + self._id
         urlopen(
             urljoin(namenode_url, '/nodes/join'),
-            data=self._id.encode('utf-8'),
+            data=data.encode('utf-8'),
         ).close()
         self._namenode_url = namenode_url
 
