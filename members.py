@@ -86,9 +86,13 @@ class MemberDB:
 
     def get(self, id):
         with self._lock:
-            return Member(*self._records[id], database=self)
+            try:
+                record = self._records[id]
+            except KeyError:
+                return None
+            return Member(**record, database=self)
 
-    def create(self, id, url, status=NEW, last_alive=None, member_cls=None):
+    def create(self, id, url, status=NEW, last_alive=None):
         with self._lock:
             if id in self._records:
                 raise ValueError(f"Member(id='{id}') already exists")
@@ -102,21 +106,19 @@ class MemberDB:
             }
             self._records[id] = record
             self.sync()
-            return Member(*record, database=self)
+            return Member(**record, database=self)
 
     def filter(self, **kwargs):
         with self._lock:
-            members = [
-                Member(*record, database=self)
-                for record in self._records.values()
+            records = [
+                r for r in self._records.values()
             ]
             for (key, value) in kwargs.items():
-                members = [
-                    member
-                    for member in members
-                    if member[key] == value
+                records = [
+                    r for r in records
+                    if r[key] == value
                 ]
-            return members
+            return [Member(**r, database=self) for r in records]
 
     @contextmanager
     def _open_read(self):

@@ -31,7 +31,11 @@ class HttpDataNode:
 
     def df(self) -> tuple:
         with urlopen(urljoin(self._url, '/df')) as resp:
-            return deserialize_tuple(resp)
+            return deserialize_tuple(
+                resp,
+                resp.length,
+                urlparse(resp.url).hostname,
+            )
 
     def cd(self, path: str):
         urlopen(
