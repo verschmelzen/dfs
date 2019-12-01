@@ -1,4 +1,4 @@
-from urllib.request import urlopen
+from urllib.request import urlopen, HTTPError, URLError
 from urllib.parse import urlparse, urljoin
 
 from util import *
@@ -113,4 +113,11 @@ class HttpDataNode:
     def snap(self):
         with urlopen(urljoin(self._url, '/snap')) as resp:
             return resp.read()
+
+    def ping_alive(self):
+        try:
+            urlopen(urljoin(self._url, '/ping_alive')).close()
+            return True
+        except (HTTPError, URLError):
+            return False
 

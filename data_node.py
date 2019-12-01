@@ -156,6 +156,9 @@ class DataNode:
     def snap(self):
         return package(self._fs_root)
 
+    def ping_alive(self):
+        return True
+
     HANDLERS = {
         '/mkfs': (mkfs, deserialize, serialize),
         '/df': (df, deserialize, serialize),
@@ -173,6 +176,7 @@ class DataNode:
 
         '/sync': (sync, deserialize, serialize),
         '/snap': (snap, deserialize, serialize),
+        '/ping_alive': (ping_alive, deserialize, serialize),
     }
 
     def join_namespace(self, namenode_url):

@@ -12,20 +12,27 @@ def track_members(db, timeout, stop_event):
     while True:
         members = db.filter()
         for m in members:
+            node = HttpDataNode(m.url)
             if m.status == NEW:
-                node = HttpDataNode(m.url)
                 node.mkfs()
                 try:
                     donor = random.choice(db.filter(status=ALIVE))
-                except IndexError:
+                    node.sync(donor.url)
+                except IndexError as e:
                     continue
-                node.sync(donor.url)
-                m.status = ALIVE
+                finally:
+                    m.status = ALIVE
             else:
-                if m.ping_alive():
+                if node.ping_alive():
                     if m.status == DEAD:
-                        HttpDataNode(m.url).sync(donor.url)
-                        m.status = ALIVE
+                        node.mkfs()
+                        try:
+                            donor = random.choice(db.filter(status=ALIVE))
+                            node.sync(donor.url)
+                        except IndexError as e:
+                            continue
+                        finally:
+                            m.status = ALIVE
                 else:
                     m.status = DEAD
         if stop_event.is_set():
@@ -35,20 +42,23 @@ def track_members(db, timeout, stop_event):
 
 class NameNode:
 
-    DEFAULT_HEARTBEAT = 10
+    DEFAULT_HEARTBEAT = 1
 
     @staticmethod
     def get_args(env):
         return (env['DFS_DB_PATH'], env.get('DFS_HEARTBEAT'))
 
     def __init__(self, db_path, heartbeat=None):
+        self._heartbeat_stop = None
+        self._heartbeat = None
         self._db = MemberDB(db_path)
+        heartbeat = heartbeat or self.DEFAULT_HEARTBEAT
         self._heartbeat_stop = th.Event()
-        heartbeat = heartbeat or DEFAULT_HEARTBEAT
         self._heartbeat = th.Thread(
             target=track_members,
             args=(self._db, heartbeat, self._heartbeat_stop),
         )
+        self._heartbeat.start()
 
     def add_node(self, url, node_id):
         member = self._db.get(node_id)
@@ -147,6 +157,7 @@ class NameNode:
     }
 
     def __del__(self):
-        self._heartbeat_stop.set()
-        self._heartbeat.join()
+        if self._heartbeat:
+            self._heartbeat_stop.set()
+            self._heartbeat.join()
 
