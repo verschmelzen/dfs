@@ -30,9 +30,14 @@ class DFS(LoggingMixIn, Operations):
         except:
             raise FuseOSError(ENOENT)
 
+    getxattr = None
+
+    def truncate(self, path, length, fh=None):
+        pass
+
     def mkdir(self, path, mode):
         try:
-            return self._node.mkdir(path)
+            self._node.mkdir(path)
         except:
             raise FuseOSError(ENOENT)
 
@@ -56,31 +61,26 @@ class DFS(LoggingMixIn, Operations):
 
     def rename(self, old, new):
         try:
-            return self._node.mv(old, new)
+            self._node.mv(old, new)
         except:
             raise FuseOSError(ENOENT)
 
     def rmdir(self, path):
         try:
-            return self._node.rmdir(path)
-        except:
-            raise FuseOSError(ENOENT)
-
-    def truncate(self, path, length, fh=None):
-        try:
-            return self._node.stat(path)[1]
+            self._node.rmdir(path)
         except:
             raise FuseOSError(ENOENT)
 
     def unlink(self, path):
         try:
-            return self._node.rm(path)
+            self._node.rm(path)
         except:
             raise FuseOSError(ENOENT)
 
     def write(self, path, data, offset, fh):
         try:
             self._node.tee(path, data)
+            return len(data)
         except:
             raise FuseOSError(ENOENT)
 

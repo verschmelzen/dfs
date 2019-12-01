@@ -109,8 +109,6 @@ class DataNode:
 
     def touch(self, path: str):
         fs_path = self._path_to_fs(path)
-        if os.path.exists(fs_path):
-            raise CommandError(f'{path} already exists')
         open(fs_path, 'a').close()
 
     def cat(self, path: str) -> bytes:
@@ -122,8 +120,6 @@ class DataNode:
 
     def tee(self, path: str, data: bytes):
         fs_path = self._path_to_fs(path)
-        if os.path.exists(fs_path):
-            raise CommandError(f'{path} already exist')
         with open(fs_path, 'wb') as file:
             file.write(data)
 
@@ -147,8 +143,6 @@ class DataNode:
         abs_dst = self._path_to_fs(dst)
         if not os.path.exists(abs_src):
             raise CommandError(f'{src} does not exist')
-        if os.path.exists(abs_dst):
-            raise CommandError(f'{dst} already exists')
         shutil.copy(abs_src, abs_dst)
 
     def mv(self, src: str, dst: str):
@@ -156,8 +150,6 @@ class DataNode:
         abs_dst = self._path_to_fs(dst)
         if not os.path.exists(abs_src):
             raise CommandError(f'{src} does not exist')
-        if os.path.exists(abs_dst):
-            raise CommandError(f'{dst} already exists')
         shutil.move(abs_src, abs_dst)
 
     def sync(self, donor_url):
