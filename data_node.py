@@ -22,10 +22,17 @@ class DataNode:
         )
 
     def __init__(self, fs_root: str, namenode_url=None, port=None):
-        self._id = gen_id()
         self._fs_root = fs_root.rstrip('/')
-        self._namenode_url = None
+        self._workdir = '/'
+        self._state_file = self._fs_root + '.state'
         self._advertise_port = port
+        self._namenode_url = None
+        self._id = None
+        if os.path.isfile(self._state_file):
+            with open(self._state_file, 'r') as f:
+                self._id, self._namenode_url = f.read().split()
+                return
+        self._id = gen_id()
         if namenode_url:
             if not self._advertise_port:
                 raise ValueError(
@@ -33,7 +40,10 @@ class DataNode:
                     'when running in cluster mode'
                 )
             self.join_namespace(namenode_url)
-        self._workdir = '/'
+        with open(self._state_file, 'w') as f:
+            f.write(self._id)
+            f.write('\n')
+            f.write(self._namenode_url)
 
     def _path_to_fs(self, path: str) -> str:
         return path_join(

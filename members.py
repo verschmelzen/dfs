@@ -68,7 +68,7 @@ class MemberDB:
 
     def __init__(self, path):
         path = Path(path)
-        path.touch(mode=0o600, exist_ok=False)
+        path.touch(mode=0o600)
         self._path = path
         self._lock = RLock()
         with self._lock, self._open_read() as records:

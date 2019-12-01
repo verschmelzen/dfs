@@ -18,6 +18,8 @@ def track_members(db, timeout, stop_event):
                 try:
                     donor = random.choice(db.filter(status=ALIVE))
                     node.sync(donor.url)
+                    donor_node = HttpDataNode(donor.url)
+                    node.cd(donor_node.stat('.')[0])
                 except IndexError as e:
                     continue
                 finally:
@@ -29,6 +31,8 @@ def track_members(db, timeout, stop_event):
                         try:
                             donor = random.choice(db.filter(status=ALIVE))
                             node.sync(donor.url)
+                            donor_node = HttpDataNode(donor.url)
+                            node.cd(donor_node.stat('.')[0])
                         except IndexError as e:
                             continue
                         finally:

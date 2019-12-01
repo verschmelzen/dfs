@@ -118,6 +118,6 @@ def deserialize_join(stream, content_len, remote_ip):
 
 
 def serialize_matrix(data):
-    lines = [b'\t'.join(x) for x in data]
-    return b'\n'.join(lines)
+    lines = ['\t'.join([str(y) for y in x]) for x in data]
+    return '\n'.join(lines).encode('utf-8')
 
