@@ -16,15 +16,19 @@ DEAD = 'dead'
 
 class Member:
 
-    def __init__(self, id, url, status, last_alive, database):
+    def __init__(self, id, url, status, database):
         self._id = id
         self._url = url
         self._status = status
-        self._last_alive = last_alive
         self._db = database
 
     def save(self):
-        self._db.sync()
+        record = {
+            'id': self._id,
+            'url': self._url,
+            'status': self._status,
+        }
+        self._db.update(record)
 
     @property
     def id(self):
@@ -56,21 +60,11 @@ class Member:
             self._status = v
             self.save()
 
-    @property
-    def last_alive(self):
-        return self._last_alive
-
-    @last_alive.setter
-    def last_alive(self, v):
-        with self._db._lock:
-            self._last_alive = v
-            self.save()
-
 
 class MemberDB:
 
     _DIALECT = 'excel-tab'
-    _FIELDS = ['id', 'url', 'status', 'last_alive']
+    _FIELDS = ['id', 'url', 'status']
 
     def __init__(self, path):
         path = Path(path)
@@ -92,17 +86,19 @@ class MemberDB:
                 return None
             return Member(**record, database=self)
 
-    def create(self, id, url, status=NEW, last_alive=None):
+    def update(self, record):
+        with self._lock:
+            self._records[record['id']].update(record)
+            self.sync()
+
+    def create(self, id, url, status=NEW):
         with self._lock:
             if id in self._records:
                 raise ValueError(f"Member(id='{id}') already exists")
-            if not last_alive:
-                last_alive = current_time()
             record = {
                 'id': id,
                 'url': url,
                 'status': status,
-                'last_alive': last_alive,
             }
             self._records[id] = record
             self.sync()

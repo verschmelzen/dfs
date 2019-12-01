@@ -104,3 +104,13 @@ class HttpDataNode:
 
         ).close()
 
+    def sync(self, donor_url):
+        urlopen(
+            urljoin(self._url, '/sync'),
+            data=donor_url.encode('utf-8'),
+        ).close()
+
+    def snap(self):
+        with urlopen(urljoin(self._url, '/snap')) as resp:
+            return resp.read()
+

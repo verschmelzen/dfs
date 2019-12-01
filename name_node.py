@@ -1,4 +1,6 @@
 import random
+import time
+import threading as th
 from urllib.parse import urljoin
 
 from util import *
@@ -6,21 +8,53 @@ from members import *
 from http_data_node import HttpDataNode
 
 
+def track_members(db, timeout, stop_event):
+    while True:
+        members = db.filter()
+        for m in members:
+            if m.status == NEW:
+                node = HttpDataNode(m.url)
+                node.mkfs()
+                try:
+                    donor = random.choice(db.filter(status=ALIVE))
+                except IndexError:
+                    continue
+                node.sync(donor.url)
+                m.status = ALIVE
+            else:
+                if m.ping_alive():
+                    if m.status == DEAD:
+                        HttpDataNode(m.url).sync(donor.url)
+                        m.status = ALIVE
+                else:
+                    m.status = DEAD
+        if stop_event.is_set():
+            return
+        time.sleep(timeout)
+
+
 class NameNode:
+
+    DEFAULT_HEARTBEAT = 10
 
     @staticmethod
     def get_args(env):
-        return (env['DFS_DB_PATH'],)
+        return (env['DFS_DB_PATH'], env.get('DFS_HEARTBEAT'))
 
-    def __init__(self, db_path):
+    def __init__(self, db_path, heartbeat=None):
         self._db = MemberDB(db_path)
+        self._heartbeat_stop = th.Event()
+        heartbeat = heartbeat or DEFAULT_HEARTBEAT
+        self._heartbeat = th.Thread(
+            target=track_members,
+            args=(self._db, heartbeat, self._heartbeat_stop),
+        )
 
     def add_node(self, url, node_id):
-        # TODO: assign status NEW for handling heartbeat thread
         member = self._db.get(node_id)
         if member:
             raise CommandError(f'{node_id} is already a member')
-        self._db.create(node_id, url, ALIVE)
+        self._db.create(node_id, url)
 
     def status(self):
         return [(n.id, n.status) for n in self._db.filter()]
@@ -111,4 +145,8 @@ class NameNode:
 
         '/nodes/join': (add_node, deserialize_join, serialize),
     }
+
+    def __del__(self):
+        self._heartbeat_stop.set()
+        self._heartbeat.join()
 

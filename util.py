@@ -3,6 +3,8 @@ import sys
 import csv
 import random
 import string
+import tarfile
+from io import BytesIO
 from importlib import import_module
 
 
@@ -28,6 +30,19 @@ ID_LENGTH = 6
 
 def gen_id():
     return ''.join(random.choice(ID_SYMBOLS) for _ in range(6))
+
+
+def package(path):
+    packaged = BytesIO()
+    with tarfile.open(fileobj=packaged, mode='w|gz') as tar:
+        tar.add(path, '/')
+    return packaged.getvalue()
+
+
+def unpack(package, path):
+    packaged = BytesIO(package)
+    with tarfile.open(fileobj=packaged, mode='r|gz') as tar:
+        tar.extractall(path)
 
 
 def deserialize(stream, content_len, remote_ip):
@@ -66,7 +81,6 @@ def serialize(data):
         return data
     if type(data) == str:
         return data.encode('utf-8')
-    print(data, 'ono loh')
     try:
         iterator = iter(data)
     except TypeError:

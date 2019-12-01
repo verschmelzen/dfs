@@ -149,6 +149,13 @@ class DataNode:
             raise CommandError(f'{dst} already exists')
         shutil.move(abs_src, abs_dst)
 
+    def sync(self, donor_url):
+        with urlopen(urljoin(donor_url, '/snap')) as resp:
+            unpack(resp.read(), self._fs_root)
+
+    def snap(self):
+        return package(self._fs_root)
+
     HANDLERS = {
         '/mkfs': (mkfs, deserialize, serialize),
         '/df': (df, deserialize, serialize),
@@ -163,6 +170,9 @@ class DataNode:
         '/stat': (stat, deserialize, serialize),
         '/cp': (cp, deserialize, serialize),
         '/mv': (mv, deserialize, serialize),
+
+        '/sync': (sync, deserialize, serialize),
+        '/snap': (snap, deserialize, serialize),
     }
 
     def join_namespace(self, namenode_url):
