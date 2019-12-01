@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import os
 from wsgiref.simple_server import make_server
 from wsgiref.util import request_uri

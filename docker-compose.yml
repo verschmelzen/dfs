@@ -1,0 +1,25 @@
+version: "3.7"
+
+services:
+  name:
+    image: arrowknee/dfs
+    build: .
+    environment:
+      DFS_NODE_CLASS: name_node.NameNode
+    ports:
+      - 8180:8180
+    deploy:
+      replicas: 1
+    restart: always
+
+  data:
+    image: arrowknee/dfs
+    build: .
+    environment:
+      DFS_NODE_CLASS: data_node.DataNode
+      DFS_PORT: '8181'
+      DFS_NAMENODE_URL: 'http://name:8180/'
+    deploy:
+      mode: global
+    restart: always
+
