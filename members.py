@@ -16,9 +16,10 @@ DEAD = 'dead'
 
 class Member:
 
-    def __init__(self, id, url, status, database):
+    def __init__(self, id, url, public_url, status, database):
         self._id = id
         self._url = url
+        self._public_url = public_url
         self._status = status
         self._db = database
 
@@ -26,6 +27,7 @@ class Member:
         record = {
             'id': self._id,
             'url': self._url,
+            'public_url': self._public_url,
             'status': self._status,
         }
         self._db.update(record)
@@ -51,6 +53,16 @@ class Member:
             self.save()
 
     @property
+    def public_url(self):
+        return self._public_url
+
+    @public_url.setter
+    def public_url(self, v):
+        with self._db._lock:
+            self._public_url = v
+            self.save()
+
+    @property
     def status(self):
         return self._status
 
@@ -64,7 +76,7 @@ class Member:
 class MemberDB:
 
     _DIALECT = 'excel-tab'
-    _FIELDS = ['id', 'url', 'status']
+    _FIELDS = ['id', 'url', 'public_url', 'status']
 
     def __init__(self, path):
         path = Path(path)
@@ -91,13 +103,12 @@ class MemberDB:
             self._records[record['id']].update(record)
             self.sync()
 
-    def create(self, id, url, status=NEW):
+    def create(self, id, url, public_url=None, status=NEW):
         with self._lock:
-            if id in self._records:
-                raise ValueError(f"Member(id='{id}') already exists")
             record = {
                 'id': id,
                 'url': url,
+                'public_url': public_url,
                 'status': status,
             }
             self._records[id] = record

@@ -9,7 +9,9 @@ services:
     ports:
       - 8180:8180
     deploy:
-      replicas: 1
+      placement:
+        constraints:
+          - 'node.role == manager'
     restart: always
 
   data:
@@ -18,7 +20,10 @@ services:
     environment:
       DFS_NODE_CLASS: data_node.DataNode
       DFS_PORT: '8181'
+      DFS_PUBLIC_URL: "http://${PUBLIC_URL}:8181/"
       DFS_NAMENODE_URL: 'http://name:8180/'
+    ports:
+      - 8181:8181
     deploy:
       mode: global
     restart: always

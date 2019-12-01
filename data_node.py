@@ -19,12 +19,16 @@ class DataNode:
             env['DFS_FS_ROOT'],
             env.get('DFS_NAMENODE_URL'),
             env.get('DFS_PORT', '8180'),
+            env.get('DFS_ADVERTISE_HOST'),
+            env.get('DFS_PUBLIC_URL'),
         )
 
-    def __init__(self, fs_root: str, namenode_url=None, port=None):
+    def __init__(self, fs_root: str, namenode_url=None, port=None, advertise_host=None, public_url=None):
         self._fs_root = fs_root.rstrip('/')
         self._workdir = '/'
         self._state_file = self._fs_root + '.state'
+        self._advertise_host = advertise_host
+        self._public_url = public_url
         self._advertise_port = port
         self._namenode_url = None
         self._id = None
@@ -190,7 +194,12 @@ class DataNode:
             )
         if not urlparse(namenode_url).netloc:
             raise CommandError(f'Invalid namenode url {namenode_url}')
-        data = self._advertise_port + ' ' + self._id
+        if self._advertise_host:
+            data = self._advertise_host + ':' + self._advertise_port + ' ' + self._id
+        else:
+            data = self._advertise_port + ' ' + self._id
+        if self._public_url:
+            data = self._public_url + ' ' + data
         urlopen(
             urljoin(namenode_url, '/nodes/join'),
             data=data.encode('utf-8'),

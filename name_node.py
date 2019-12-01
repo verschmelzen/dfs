@@ -64,11 +64,8 @@ class NameNode:
         )
         self._heartbeat.start()
 
-    def add_node(self, url, node_id):
-        member = self._db.get(node_id)
-        if member:
-            raise CommandError(f'{node_id} is already a member')
-        self._db.create(node_id, url)
+    def add_node(self, public_url, url, node_id):
+        self._db.create(node_id, url, public_url=public_url)
 
     def status(self):
         return [(n.id, n.status) for n in self._db.filter()]
@@ -94,7 +91,7 @@ class NameNode:
 
     def ls(self, path: str = None) -> list:
         node = random.choice(self._db.filter(status=ALIVE))
-        return urljoin(node.url, 'ls')
+        return urljoin(node.public_url, 'ls')
 
     def mkdir(self, path: str):
         nodes = self._db.filter(status=ALIVE)
@@ -113,7 +110,7 @@ class NameNode:
 
     def cat(self, path: str) -> bytes:
         node = random.choice(self._db.filter(status=ALIVE))
-        return urljoin(node.url, 'cat')
+        return urljoin(node.public_url, 'cat')
 
     def tee(self, path: str, data: bytes):
         nodes = self._db.filter(status=ALIVE)
@@ -127,7 +124,7 @@ class NameNode:
 
     def stat(self, path: str) -> tuple:
         node = random.choice(self._db.filter(status=ALIVE))
-        return urljoin(node.url, 'stat')
+        return urljoin(node.public_url, 'stat')
 
     def cp(self, src: str, dst: str):
         nodes = self._db.filter(status=ALIVE)

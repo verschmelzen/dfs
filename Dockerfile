@@ -9,8 +9,11 @@ ENV DFS_NODE_CLASS= \
     DFS_PORT=8180 \
     DFS_FS_ROOT=/data/rootfs \
     DFS_NAMENODE_URL= \
+    DFS_PUBLIC_URL= \
     DFS_DB_PATH=/data/nodes
 
 VOLUME /data
+
+ENTRYPOINT ["sh", "entrypoint.sh"]
 
 CMD ["python", "server.py"]

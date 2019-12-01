@@ -112,9 +112,16 @@ def deserialize_matrix(stream, content_len, remote_ip):
 
 
 def deserialize_join(stream, content_len, remote_ip):
-    port, id = stream.read(content_len).decode('utf-8').split(' ')
+    tmp = stream.read(content_len).decode('utf-8').split(' ')
+    public_url = None
+    if len(tmp) > 2:
+        public_url, port, id = tmp
+    else:
+        port, id = tmp
+    if ':' in port:
+        remote_ip, port = port.split(':')
     url = 'http://' + remote_ip + ':' + port + '/'
-    return url, id
+    return public_url, url, id
 
 
 def serialize_matrix(data):
