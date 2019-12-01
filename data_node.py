@@ -139,7 +139,8 @@ class DataNode:
         fs_path = self._path_to_fs(path)
         if not os.path.exists(fs_path):
             raise CommandError(f'{path} does not exist')
-        return self._fs_to_path(fs_path), os.stat(fs_path).st_size
+        st = os.stat(fs_path)
+        return self._fs_to_path(fs_path), st.st_size, st.st_mode
 
     def cp(self, src: str, dst: str):
         abs_src = self._path_to_fs(src)

@@ -102,7 +102,7 @@ def deserialize_list(stream, content_len, remote_ip):
 def deserialize_stat(stream, content_len, remote_ip):
     tmp = stream.read(content_len).decode('utf-8')
     tmp = tmp.split()
-    return tmp[0], int(tmp[1])
+    return tmp[0], int(tmp[1]), int(tmp[2])
 
 
 def deserialize_matrix(stream, content_len, remote_ip):
