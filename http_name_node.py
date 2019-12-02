@@ -1,4 +1,4 @@
-from urllib.request import urlopen
+from urllib.request import urlopen, HTTPError, URLError
 from urllib.parse import urlparse, urljoin
 
 from util import *
@@ -135,4 +135,11 @@ class HttpNameNode:
             urljoin(self._url, '/mv'),
             data=data.encode('utf-8'),
         ).close()
+
+    def ping_alive(self):
+        try:
+            urlopen(urljoin(self._url, '/ping_alive')).close()
+            return True
+        except (HTTPError, URLError):
+            return False
 

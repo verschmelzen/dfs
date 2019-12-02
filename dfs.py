@@ -11,6 +11,8 @@ class DFS(LoggingMixIn, Operations):
 
     def __init__(self, url):
         self._node = HttpNameNode(url)
+        if not self._node.ping_alive():
+            raise Exception('Cannot connect to cluster')
 
     def create(self, path, mode):
         try:

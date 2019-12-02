@@ -136,6 +136,9 @@ class NameNode:
         for node in nodes:
             HttpDataNode(node.url).mv(src, dst)
 
+    def ping_alive(self):
+        return True
+
     HANDLERS = {
         '/add_node': (add_node, deserialize, serialize),
         '/status': (status, deserialize, serialize_matrix),
@@ -155,6 +158,7 @@ class NameNode:
         '/mv': (mv, deserialize, serialize),
 
         '/nodes/join': (add_node, deserialize_join, serialize),
+        '/ping_alive': (ping_alive, deserialize, serialize),
     }
 
     def __del__(self):
