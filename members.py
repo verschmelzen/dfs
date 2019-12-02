@@ -12,7 +12,7 @@ DEAD : str
 """
 import csv
 import time
-from typing import Dict
+from typing import Dict, List
 from threading import RLock
 from pathlib import Path
 from contextlib import contextmanager

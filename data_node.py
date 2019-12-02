@@ -374,10 +374,9 @@ class DataNode:
             )
         if not urlparse(namenode_url).netloc:
             raise CommandError(f'Invalid namenode url {namenode_url}')
+        data = self._advertise_port + ' ' + self._id
         if self._advertise_host:
-            data = self._advertise_host + ':' + self._advertise_port + ' ' + self._id
-        else:
-            data = self._advertise_port + ' ' + self._id
+            data = self._advertise_host + ':' + data
         if self._public_url:
             data = self._public_url + ' ' + data
         urlopen(
