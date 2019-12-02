@@ -9,10 +9,12 @@ from http_name_node import HttpNameNode
 
 class DFS(LoggingMixIn, Operations):
 
-    def __init__(self, url):
+    def __init__(self, url, mkfs=False):
         self._node = HttpNameNode(url)
         if not self._node.ping_alive():
             raise Exception('Cannot connect to cluster')
+        if mkfs:
+            self._node.mkfs()
 
     def create(self, path, mode):
         try:
@@ -92,6 +94,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='DFS mount tool'
     )
+    parser.add_argument(
+        '--mkfs',
+        action='store_true',
+        help='Initialize filesystem, erase all existing data',
+    )
     parser.add_argument('mount', help='Mount directory')
     parser.add_argument('host', help='Name node hostname')
     parser.add_argument(
@@ -104,9 +111,9 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     url = f'http://{args.host}:{args.port}/'
     fuse = FUSE(
-        DFS(url),
+        DFS(url, mkfs=args.mkfs),
         args.mount,
-        foreground=True,
+        foreground=False,
         nothreads=True,
         allow_other=True,
     )
