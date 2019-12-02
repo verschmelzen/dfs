@@ -3,7 +3,7 @@
 Simple Distributed File System with Python, HTTP and fuse API that
 can be run in docker swarm mode.
 
-# Cluster
+## Cluster
 
 To run cluster manualy on single host you can run following commands
 
@@ -45,7 +45,7 @@ interaction with data nodes, when reading file for example,
 by you. In this mode swarm mesh service takes care of distributing
 requests among data node containers.
 
-# Client
+## Client
 
 Clients of the cluster can use it through HTTP requests, through
 `HttpNameNode` instance in Python code or throught fuse
@@ -67,4 +67,8 @@ directly on host with server running on non-standart port you can run
 ```bash
 dfs.py mount_point localhost 8080
 ```
+
+## Links
+[GitHub](https://github.com/verschmelzen/dfs)
+[DockerHub](https://hub.docker.com/r/arrowknee/dfs)
 
