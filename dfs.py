@@ -1,13 +1,33 @@
 #!/usr/bin/env python
-import logging
 from errno import ENOENT
 from stat import S_IFDIR
-from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
+try:
+    from fuse import FUSE, FuseOSError, Operations
+except ImportError:
+    import sys
+    print(
+        "fusepy is required to mount DFS as unix filesystem.\n"
+        "It seems like you don't have it installed.\n"
+        "Install it for current user "
+        "(Run `pip install --user fusepy`) [Y/n]?",
+        end='',
+        file=sys.stderr,
+    )
+    answer = input()
+    if answer not in ['', 'Y', 'y']:
+        print("Not installing", file=sys.stderr)
+        sys.exit()
+    import os
+    code = os.system('pip install --user fusepy')
+    if code != 0:
+        print("Failed to install", file=sys.stderr)
+        sys.exit(code)
+    os.execv(sys.argv[0], sys.argv)
 
 from http_name_node import HttpNameNode
 
 
-class DFS(LoggingMixIn, Operations):
+class DFS(Operations):
 
     def __init__(self, url, mkfs=False):
         self._node = HttpNameNode(url)
@@ -108,7 +128,6 @@ if __name__ == '__main__':
         help='Port to use for connection (default: 8180)',
     )
     args = parser.parse_args()
-    logging.basicConfig(level=logging.DEBUG)
     url = f'http://{args.host}:{args.port}/'
     fuse = FUSE(
         DFS(url, mkfs=args.mkfs),
