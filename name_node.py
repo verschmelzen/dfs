@@ -1,6 +1,7 @@
 import random
 import time
 import threading as th
+from typing import Optional, List, Tuple
 from urllib.parse import urljoin
 
 from util import *
@@ -8,7 +9,22 @@ from members import *
 from http_data_node import HttpDataNode
 
 
-def track_members(db, timeout, stop_event):
+def track_members(db: MemberDB, interval: int, stop_event: th.Event):
+    """
+    Main function of heartbeat thread of NameNode.
+
+    It walks through database, initializes new nodes, checks if nodes
+    are alive and synchronizes nodes that have been dead but came back.
+
+    Parameters
+    ----------
+    db : MemberDb
+        Database instance.
+    interval : int
+        Interval of checks.
+    stop_event : threading.Event
+        Notification of main thread cleanup and exit.
+    """
     while True:
         members = db.filter()
         for m in members:
@@ -41,18 +57,56 @@ def track_members(db, timeout, stop_event):
                     m.status = DEAD
         if stop_event.is_set():
             return
-        time.sleep(timeout)
+        time.sleep(interval)
 
 
 class NameNode:
+    """
+    Python API for DFS cluster operation. Handles data nodes in
+    separate thread. It provides same interface as DataNode both in
+    python and HTTP, and additional routines for cluster management.
+
+    Class Attributes
+    ----------------
+    DEFAULT_HEARTBEAT : int
+        Default interval of data node status checks.
+    HANDLERS : dict
+        Dictionary where keys are HTTP endpoints and values are tuples
+        of three elements: method to call, argument deserialization
+        routine and return value serialization routine.
+    """
 
     DEFAULT_HEARTBEAT = 1
 
     @staticmethod
-    def get_args(env):
+    def get_args(env: os.environ) -> tuple:
+        """
+        Provides server with args to build an instance of NameNode.
+
+        Parameters
+        ----------
+        env : os.environ
+            Map of environment variables from server.
+
+        Returns
+        -------
+        tuple:
+            Tuple with arguments for constructor.
+        """
         return (env['DFS_DB_PATH'], env.get('DFS_HEARTBEAT'))
 
-    def __init__(self, db_path, heartbeat=None):
+    def __init__(self, db_path: str, heartbeat: Optional[int] = None):
+        """
+        Initialize member database. Start heartbeat thread.
+
+        Parameters
+        ----------
+        db_path : str
+            Path to database file.
+        heartbeat : Optional[int]
+            Interval of member status checks. If not specified uses
+            DEFAULT_HEARTBEAT value.
+        """
         self._heartbeat_stop = None
         self._heartbeat = None
         self._db = MemberDB(db_path)
@@ -64,10 +118,30 @@ class NameNode:
         )
         self._heartbeat.start()
 
-    def add_node(self, public_url, url, node_id):
+    def add_node(self, public_url: str, url: str, node_id: str):
+        """
+        Add data node to members database with status NEW.
+
+        Parameters
+        ----------
+        public_url : str
+            Redirection URL user read operations.
+        url : str
+            URL for direct data node interaction.
+        node_id : str
+            Unique identifier of data node.
+        """
         self._db.create(node_id, url, public_url=public_url)
 
-    def status(self):
+    def status(self) -> List[Tuple[str, str]]:
+        """
+        Get status of data nodes.
+
+        Returns
+        -------
+        List[Tuple[str, str]]:
+            Array of pairs with data node id and its status.
+        """
         return [(n.id, n.status) for n in self._db.filter()]
 
     def mkfs(self):
@@ -75,12 +149,20 @@ class NameNode:
         for node in nodes:
             HttpDataNode(node.url).mkfs()
 
-    def df(self):
+    def df(self) -> List[Tuple[str, int, int, int]]:
+        """
+        Get disk usage info for members.
+
+        Returns
+        -------
+        List[Tuple[str, int, int, int]]:
+            Array of node id, total, used, and free bytes.
+        """
         nodes = self._db.filter(status=ALIVE)
         total = []
         for node in nodes:
             total.append(
-                [node.id, *HttpDataNode(node.url).df()]
+                (node.id, *HttpDataNode(node.url).df())
             )
         return total
 
@@ -89,7 +171,23 @@ class NameNode:
         for node in nodes:
             HttpDataNode(node.url).cd(path)
 
-    def ls(self, path: str = None) -> list:
+    def ls(self, path: Optional[str] = None) -> str:
+        """
+        Get endpoint for reading directory.
+
+        Selects healthy data node and redirects user to read actual
+        results from there.
+
+        Parameters
+        ----------
+        path : Optional[str]
+            Path to directory.
+
+        Returns
+        -------
+        str:
+            URL to action on healthy data node.
+        """
         node = random.choice(self._db.filter(status=ALIVE))
         return urljoin(node.public_url, 'ls')
 
@@ -98,7 +196,7 @@ class NameNode:
         for node in nodes:
             HttpDataNode(node.url).mkdir(path)
 
-    def rmdir(self, path: str, force=False):
+    def rmdir(self, path: str, force: Optional[bool] = False):
         nodes = self._db.filter(status=ALIVE)
         for node in nodes:
             HttpDataNode(node.url).rmdir(path, force)
@@ -108,7 +206,23 @@ class NameNode:
         for node in nodes:
             HttpDataNode(node.url).touch(path)
 
-    def cat(self, path: str) -> bytes:
+    def cat(self, path: str) -> str:
+        """
+        Get endpoint for reading file.
+
+        Selects healthy data node and redirects user to read actual
+        results from there.
+
+        Parameters
+        ----------
+        path : str
+            Path to file.
+
+        Returns
+        -------
+        str:
+            URL to action on healthy data node.
+        """
         node = random.choice(self._db.filter(status=ALIVE))
         return urljoin(node.public_url, 'cat')
 
@@ -122,7 +236,23 @@ class NameNode:
         for node in nodes:
             HttpDataNode(node.url).rm(path)
 
-    def stat(self, path: str) -> tuple:
+    def stat(self, path: str) -> str:
+        """
+        Get endpoint to fetch file or directory info.
+
+        Selects healthy data node and redirects user to read actual
+        results from there.
+
+        Parameters
+        ----------
+        path : str
+            Path to file or directory.
+
+        Returns
+        -------
+        str:
+            URL to action on healthy data node.
+        """
         node = random.choice(self._db.filter(status=ALIVE))
         return urljoin(node.public_url, 'stat')
 
