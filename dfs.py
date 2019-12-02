@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from errno import ENOENT
 from stat import S_IFDIR
 try:
