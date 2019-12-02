@@ -81,16 +81,3 @@ To cat file:
 ```bash
 cat /mount_point/path_to_file
 ```
-## Architecture diagrams
-- Global interraction diagram.
-
-- Upload interraction diagram.
-Client sends upload request to the namenode through HTTP. Namenode redirects request to all datanodes again through HHTP. Datanodes update their local file systems.
-
-- Read interraction diagram
-Client sends read request to the namenode through HTTP. Namenode send client address of datanode from which client should request the file. Client send read request to the datanode through HHTP and get responce from the datanode.
- 
-## Links
-[GitHub](https://github.com/verschmelzen/dfs)
-[DockerHub](https://hub.docker.com/r/arrowknee/dfs)
-
